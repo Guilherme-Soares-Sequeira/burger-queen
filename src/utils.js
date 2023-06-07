@@ -41,7 +41,7 @@ export function toClass(name) {
 
 
 /** 
- * Returns an array with x unique numbers from the specified range.
+ * Returns an array with x unique numbers from the specified range, inclusive.
  * 
  * @param {number} min minimum value 
  * @param {number} max maximum value
@@ -74,25 +74,49 @@ export function oneInX(x) {
 /** Returns one of the elements of the given array at random.
  * 
  * @param {Array<T>} arr
- * @returns T
+ * @returns {T}
  */
 export function chooseOneAtRandom(arr) {
     if (arr.length === 0) {
         throw new Error("The array is empty.");
     }
 
-    return arr[randomInt(0, arr.length)];
+    return arr[randomInt(0, arr.length-1)];
 }
 
+/**
+ * 
+ * @param {Array<T>} arr 
+ * @param {number} x 
+ * @returns {Array<T>}
+ */
 export function chooseXAtRandom(arr, x) {
-    if (arr.length === 0) {
-        throw new Error("The array is empty.");
+    if (arr.length < x) {
+        throw new Error("The array doesn't have enough elements.");
     }
+
     const returnArr = [];
 
-    while (returnArr.length < x) {
-        let r = randomInt(0, arr.length);
-        if (returnArr.indexOf(r) === -1) returnArr.push(arr[r]);
-    }
+    const indexes = randomUniqueInts(0, arr.length, x);
+
+    indexes.forEach(index => {
+        returnArr.push(arr[index]);
+    });
+
     return returnArr;
+}
+
+/**
+ * 
+ * @param {String} initialSelector 
+ * @param {number} min 
+ * @param {number} max 
+ * @returns {Array<String>}
+ */
+export function generateMultipleChoiceQuestionLabels(initialSelector, min, max) {
+    const labels = [];
+    for (let i = min; i <= max; i++) {
+        labels.push(`${initialSelector}-${i}-label`);
+    }
+    return labels;
 }

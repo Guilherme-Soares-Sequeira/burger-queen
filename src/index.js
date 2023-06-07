@@ -1,6 +1,6 @@
 import puppeteer, { Browser, Page } from "puppeteer-core";
 import { executablePath } from 'puppeteer';
-import { sleep, randomInt, toId, toClass, randomUniqueInts, oneInX, chooseOneAtRandom, chooseXAtRandom } from './utils.js'
+import { sleep, randomInt, toId, toClass, randomUniqueInts, oneInX, chooseOneAtRandom, chooseXAtRandom, generateMultipleChoiceQuestionLabels } from './utils.js'
 
 /**
 * BurgerQueen
@@ -24,7 +24,6 @@ class BurgerQueen {
 
             this.page = await this.browser.newPage();
             await this.page.goto(pageURL);
-            await this.page.waitForSelector(toId(firstSID));
 
         }
         catch (e) {
@@ -41,6 +40,7 @@ class BurgerQueen {
     async click(selector) {
         await this.page.waitForSelector(selector);
         await this.page.click(selector);
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     /**
@@ -52,44 +52,60 @@ class BurgerQueen {
     async type(selector, text) {
         await this.page.waitForSelector(selector);
         await this.page.type(selector, text);
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async select(selector, value) {
         await this.page.waitForSelector(selector);
         await this.page.select(selector, value);
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async goToNextPage() {
         const nextButton = "NextButton";
-        await sleep(2000);
-        this.click(toId(nextButton));
+        await sleep(900);
+        await this.click(toId(nextButton));
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    async dealWithRadioButtons(selectorStart, satisfiedMin, satisfiedMax, tableRowMin, tableRowMax) {
-        for (let i = tableRowMin; i < tableRowMax; i++) {
+    //QID121-4-12-col-label
+    //QR-QID121-4-12-col-label
+
+    async dealWithRadioButtons(selectorStart, satisfiedMin, satisfiedMax, tableRows) {
+        for (let i = 0; i < tableRows.length; i++) {
+            const row = tableRows[i];
+
             const howSatisfied = randomInt(satisfiedMin, satisfiedMax);
-            const buttonLabel = `${selectorStart}~${i}~${howSatisfied}`
-            this.click(toId(buttonLabel));
-        }
+            const buttonLabel = `${selectorStart}\\~${row}\\~${howSatisfied}`;
+
+            await this.page.evaluate((buttonLabel) => {
+                const use = "#" + buttonLabel;
+                document.querySelector(use).click();
+            }, buttonLabel);
+            await sleep(500);
+        }            
     }
 
-    firstPage() {
+    async firstPage() {
         const firstSID = "QR~QID4";
+        
         // todo pedir um ao utilizador
-        this.type(toId(firstSID), "21595");
-        this.goToNextPage();
+        await this.type(toId(firstSID), "21595");
+
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    secondPage() {
+    async secondPage() {
         const sndDate = "QR~QID118~2";
         const sndDateHighlighted = "ui-state-highlight";
         const sndHour = "QR~QID8#1~1";
         const sndMin = "QR~QID8#2~1";
         const sndAmPm = "QR~QID8#3~1";
 
-        this.click(toId(sndDate));
-        this.click(toClass(sndDateHighlighted));
-        
+        await this.click(toId(sndDate));
+        await this.click(toClass(sndDateHighlighted));
+
         const date = new Date();
         date.setTime(Date.now());
         let hours = date.getHours();
@@ -97,30 +113,34 @@ class BurgerQueen {
         hours = hours % 12;
         hours = hours ? hours : 12; // the hour '0' should be '12'
 
-        this.select(toId(sndHour), `${hours}`);
-        this.select(toId(sndMin), `${date.getMinutes()}`);
-        this.select(toId(sndAmPm), `${ampm}`);
+        await this.select(toId(sndHour), `${hours}`);
+        await this.select(toId(sndMin), `${date.getMinutes()+1}`);
+        await this.select(toId(sndAmPm), `${ampm}`);
 
-        this.goToNextPage();
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async thirdPage() {
         const selfServiceButton = "QID12-1-label";
-        this.click(toId(selfServiceButton));
-        goToNextPage();
+        await this.click(toId(selfServiceButton));
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async fourthPage() {
         const dineInButton = "QID14-2-label";
-        this.click(toId(dineInButton));
-        goToNextPage();
+        await this.click(toId(dineInButton));
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async fifthPage() {
         const howSatisfied = randomInt(17, 18);
         const buttonLabel = `QID18-${howSatisfied}-label`
-        this.click(toId(buttonLabel));
-        goToNextPage();
+        await this.click(toId(buttonLabel));
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async sixthPage() {
@@ -142,32 +162,31 @@ class BurgerQueen {
 
         const selectedPhrases = chooseXAtRandom(phrases, 3);
 
-        for (const phrase in selectedPhrases) 
-            this.type(toId(textAreaLabel), phrase);
+        for (let i = 0; i < selectedPhrases.length; i++) {
+            const phrase = selectedPhrases[i];
+            await this.type(toId(textAreaLabel), phrase+"\n");
+        }
 
-        this.goToNextPage();
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async seventhPage() {
-        this.dealWithRadioButtons("QR~QID121", 12, 14, 4, 10);
-        this.goToNextPage();
+        await this.dealWithRadioButtons("QR\\~QID121", 12, 14, [4, 5, 10, 11, 13, 16]);
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async eighthPage() {
-        
-        const howSatisfied1 = randomInt(12, 14);
-        const buttonLabel1 = `QR~QID123~7~${howSatisfied1}`;
-        this.click(toId(buttonLabel1));
 
-        const howSatisfied2 = randomInt(12, 14);
-        const buttonLabel2 = `QR~QID123~9~${howSatisfied2}`;
-        this.click(toId(buttonLabel2));
-    
-        this.goToNextPage();
+        await this.dealWithRadioButtons("QR\\~QID123", 12, 14, [7, 9]);
+
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async ninthPage() {
-        const howSatisfied = randomInt(29, 30);
+        let howSatisfied = randomInt(29, 30);
         if (oneInX(4)) {
             howSatisfied = 8;
         }
@@ -176,36 +195,41 @@ class BurgerQueen {
         }
 
         const buttonLabel = `QID122-${howSatisfied}-label`;
-        
-        this.click(toId(buttonLabel));
 
-        this.goToNextPage();
+        await this.click(toId(buttonLabel));
+
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async tenthPage() {
-        this.dealWithRadioButtons("QR~QID21", 12, 14, 1, 5);
-        
-        this.goToNextPage();
+        await this.dealWithRadioButtons("QR\\~QID21", 12, 14, [1, 2, 3, 20]);
+
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
 
     async eleventhPage() {
-        this.dealWithRadioButtons("QR~QID22", 8, 10, 1, 5);
+        await this.dealWithRadioButtons("QR\\~QID22", 8, 10, [1, 2, 3, 4]);
 
-        this.goToNextPage();
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async twelfthPage() {
         const buttonLabel = "QID38-2-label";
-        this.click(toId(buttonLabel));
-        
-        this.goToNextPage();
+        await this.click(toId(buttonLabel));
+
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async thirteenthPage() {
-        this.dealWithRadioButtons("QR~QID41", 6, 7, 1, 3);
+        await this.dealWithRadioButtons("QR\\~QID41", 6, 7, [1, 2]);
 
-        this.goToNextPage();
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async fourteenthPage() {
@@ -219,51 +243,165 @@ class BurgerQueen {
 
         const choice = chooseOneAtRandom(possibleChoices);
 
-        this.click(toId(choice));
+        await this.click(toId(choice));
 
-        this.goToNextPage();
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async fifteenthPage() {
-        const choice = undefined;
-        if (oneInX(3)) {
-            if (oneInX(2)) {
-                choice = "QID47-114-label";
-            } 
-            else {
-                choice = "QID47-118-label"
-            }
-        }
-        else {
-            choice = "QID47-128-label";
-        }
+        let choice = undefined;
 
-        this.click(toId(choice));
-        
-        this.goToNextPage();
+        choice = "QID47-118-label"
+
+
+        await this.click(toId(choice));
+
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async sixteenthPage() {
-        const choice = chooseOneAtRandom(["QID48-12-label", "QID48-13-label", "QID48-14-label"]);
+        const choice = chooseOneAtRandom(generateMultipleChoiceQuestionLabels("QID48", 12, 14));
 
-        this.click(toId(choice));
+        await this.click(toId(choice));
 
-        this.goToNextPage();
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
     }
 
     async seventeenthPage() {
-        this.dealWithRadioButtons("QR~QID49", 12, 14, 1, 10);
+        await this.dealWithRadioButtons("QR\\~QID49", 12, 14, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
-        this.goToNextPage();
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    async eighteenthPage() {
+        const choice = chooseOneAtRandom(generateMultipleChoiceQuestionLabels("QID50", 1, 3));
+
+        await this.click(toId(choice));
+
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    async nineteenthPage() {
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    async twentiethPage() {
+        const choice = chooseOneAtRandom(generateMultipleChoiceQuestionLabels("QID55", 1, 3));
+        
+        await this.click(toId(choice));
+        await this.goToNextPage();
+        
+        if (choice !== "QID55-1-label") {
+            await this.click(toId("QID56-2-label"));
+            await this.goToNextPage();
+        }
+
+        return new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    async twentyFirstPage() {
+        const choice = oneInX(5) ? "QID57-1-label" : "QID57-2-label";
+
+        await this.click(toId(choice));
+
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    async twentySecondPage() {
+        const choice = chooseOneAtRandom(generateMultipleChoiceQuestionLabels("QID60", 1, 3));
+
+        await this.click(toId(choice));
+
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    async twentyThirdPage() {
+        const choice = chooseOneAtRandom(generateMultipleChoiceQuestionLabels("QID61", 3, 5));
+
+        await this.click(toId(choice));
+
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    async twentyFourthPage() {
+        const choice = chooseOneAtRandom(generateMultipleChoiceQuestionLabels("QID62", 1, 8));
+
+        await this.click(toId(choice));
+
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    async twentyFifthPage() {
+        const buttonLabel = "QID78-2-label";
+        try {
+            await this.page.waitForSelector(toId(buttonLabel), {timeout: 5000});
+            await this.page.click(toId(buttonLabel));
+        }
+        catch (e) {}
+
+        await this.goToNextPage();
+        return new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    async twentySixthPageAndBeyond() {
+        while (true) {
+            if ((await this.page.$$(toId("NextButton"))).length === 0) {
+                await sleep(1200);
+                const code = await this.page.evaluate(() => {
+                    const elem = document.querySelector("#EndOfSurvey");
+                    console.log("elem = " + elem);
+                    console.log("elem's innerHTML = " + elem.innerHTML);
+                    return elem.innerHTML.split("\n").filter((s) => s.includes("Código de validação"))[0].split(":")[1].trim().replace("<br>", "");
+                });
+                console.log(code);
+                return new Promise(resolve => setTimeout(resolve, 500));
+            }
+            await this.goToNextPage();
+        }
     }
 
     async run() {
         await this.initialize();
-        
-        await this.firstPage();
 
+        // avoid filling the stack with nested function calls
+        await this.firstPage();
         await this.secondPage();
-    }   
+        await this.thirdPage();
+        await this.fourthPage();
+        await this.fifthPage();
+        await this.sixthPage();
+        await this.seventhPage();
+        await this.eighthPage();
+        await this.ninthPage();
+        await this.tenthPage();
+        await this.eleventhPage();
+        await this.twelfthPage();
+        await this.thirteenthPage();
+        await this.fourteenthPage();
+        await this.fifteenthPage();
+        await this.sixteenthPage();
+        await this.seventeenthPage();
+        await this.eighteenthPage();
+        await this.nineteenthPage();
+        await this.twentiethPage();
+        await this.twentyFirstPage();
+        await this.twentySecondPage();
+        await this.twentyThirdPage();
+        await this.twentyFourthPage();
+        await this.twentyFifthPage();
+        await this.twentySixthPageAndBeyond();
+        this.browser.close();
+    }
 }
 
 const bot = new BurgerQueen();
